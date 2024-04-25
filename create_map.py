@@ -123,15 +123,21 @@ class CreateMap(Node):
                 x_obs = round(obstacle_dist*np.cos(angle)+self.curr_x,1)
                 y_obs = round(obstacle_dist*np.sin(angle)+self.curr_y,1)
                 cell_obs,grid_x_obs,grid_y_obs = self.convert(x_obs,y_obs)
-                self.update(cell_obs,0.7)
+                self.update(cell_obs,0.9)
                 line_cells = self.bresenham_line(self.robot_x,self.robot_y,grid_x_obs,grid_y_obs)
                 line_cells.remove((grid_x_obs,grid_y_obs))
-            else:
-                line_cells = self.find_path_until_boundary(self.robot_x,self.robot_y,angle)
-            
-            for cells in line_cells:
-                cell =cells[1]*50+cells[0]
-                self.update(cell,0.3)
+                for cells in line_cells:
+                    cell =cells[1]*50+cells[0]
+                    self.update(cell,0.4)
+            # else:
+            #     x_max = round(self.range_max*np.cos(angle)+self.curr_x,1)
+            #     y_max = round(self.range_max*np.sin(angle)+self.curr_y,1)
+            #     # line_cells = self.find_path_until_boundary(self.robot_x,self.robot_y,angle)
+            #     cell_obs,grid_x_obs,grid_y_obs = self.convert(x_max,y_max)
+            #     line_cells = self.bresenham_line(self.robot_x,self.robot_y,grid_x_obs,grid_y_obs)
+            #     for cells in line_cells:
+            #         cell =cells[1]*50+cells[0]
+            #         self.update_inf(cell,0.45)
 
 
 
@@ -146,6 +152,18 @@ class CreateMap(Node):
         p = float(self.temp[cell])
         # print(f"cell:{cell} initial value {self.temp[cell]} final value:{value} probability:{p}")
         if(self.temp[cell]>0.28 and self.temp[cell]<=0.72):
+            self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
+        # elif(self.temp[cell]>=0.8 and p==0.8):
+        #     p = 0.9
+        #     self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
+        self.grid.data = [int(100*i) for i in self.temp]
+
+    def update_inf(self,cell,value):
+        # self.temp[cell] = int(100/(1+((1-value/100)*(1-self.temp[cell]/100))/(value/100*self.temp[cell]/100)))
+        if(cell>=2500 or cell<=0): return
+        p = float(self.temp[cell])
+        # print(f"cell:{cell} initial value {self.temp[cell]} final value:{value} probability:{p}")
+        if(self.temp[cell]>0.49 and self.temp[cell]<=0.51):
             self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
         self.grid.data = [int(100*i) for i in self.temp]
 
