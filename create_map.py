@@ -123,14 +123,15 @@ class CreateMap(Node):
                 x_obs = round(obstacle_dist*np.cos(angle)+self.curr_x,1)
                 y_obs = round(obstacle_dist*np.sin(angle)+self.curr_y,1)
                 cell_obs,grid_x_obs,grid_y_obs = self.convert(x_obs,y_obs)
-                self.update(cell_obs,0.9)
+                self.update(cell_obs,0.7)
                 line_cells = self.bresenham_line(self.robot_x,self.robot_y,grid_x_obs,grid_y_obs)
+                line_cells.remove((grid_x_obs,grid_y_obs))
             else:
                 line_cells = self.find_path_until_boundary(self.robot_x,self.robot_y,angle)
             
             for cells in line_cells:
                 cell =cells[1]*50+cells[0]
-                self.update(cell,0.1)
+                self.update(cell,0.3)
 
 
 
@@ -141,10 +142,11 @@ class CreateMap(Node):
         
     def update(self,cell,value):
         # self.temp[cell] = int(100/(1+((1-value/100)*(1-self.temp[cell]/100))/(value/100*self.temp[cell]/100)))
-        if(cell>2500): return
-        p = self.temp[cell]
+        if(cell>=2500 or cell<=0): return
+        p = float(self.temp[cell])
         # print(f"cell:{cell} initial value {self.temp[cell]} final value:{value} probability:{p}")
-        if(p>=0.1 and p<=0.9):self.temp[cell] = 1*(1/(1+((1-value)*(1-p))/(value*p)))
+        if(self.temp[cell]>0.28 and self.temp[cell]<=0.72):
+            self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
         self.grid.data = [int(100*i) for i in self.temp]
 
 
@@ -153,7 +155,10 @@ class CreateMap(Node):
         if(self.frame_no>=2): 
             self.map()
 
-        print(self.grid)
+        if(self.frame_no%20==0):
+            print(f"current frame is {self.frame_no}",self.grid)
+            print("_____________________________________________")
+
         self.publisher_.publish(self.grid)
 
     def scan_callback(self, msg):

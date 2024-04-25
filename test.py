@@ -174,40 +174,30 @@
 
 # main()
 
-import math
+# 
 
-def find_path_until_boundary(x, y, theta, xmax, ymax):
-    # Convert angle from degrees to radians
-    theta_rad = math.radians(theta)
+def bresenham_line(x0, y0, x1, y1):
     
-    # Direction vector components
-    dx = math.cos(theta_rad)
-    dy = math.sin(theta_rad)
-    
-    # List to hold points
-    points = []
-    
-    # Current position
-    cx, cy = x, y
-    
-    while 0 <= cx <= xmax and 0 <= cy <= ymax:
-        # Store current integer position if within bounds
-        ix, iy = int(round(cx)), int(round(cy))
-        if 0 <= ix <= xmax and 0 <= iy <= ymax:
-            points.append((ix, iy))
-        
-        # Move to the next position
-        cx += dx
-        cy += dy
-        
-        # Stop if we go out of bounds to avoid infinite loop
-        if not (0 <= cx <= xmax and 0 <= cy <= ymax):
-            break
-    
-    return points
+        cells = []
+        dx = abs(x1 - x0)
+        dy = -abs(y1 - y0)
+        sx = 1 if x0 < x1 else -1
+        sy = 1 if y0 < y1 else -1
+        err = dx + dy
 
-# Example usage
-x, y, theta = 10, 10, 0  # Starting point and direction
-xmax, ymax = 50, 50       # Boundary limits
-path = find_path_until_boundary(x, y, theta, xmax, ymax)
-print(path)
+        while True:
+            cells.append((x0, y0))  # Add the current cell to the list
+            if x0 == x1 and y0 == y1:
+                break
+            e2 = 2 * err
+            if e2 >= dy:
+                err += dy
+                x0 += sx
+            if e2 <= dx:
+                err += dx
+                y0 += sy
+
+        return cells
+a = bresenham_line(0,1,20,10)
+a.pop()
+print(a)
