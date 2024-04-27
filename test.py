@@ -175,29 +175,60 @@
 # main()
 
 # 
+import math
+# def bresenham_line_ceil_both(x0, y0, x1, y1):
+#     cells = []
+#     dx = abs(x1 - x0)
+#     dy = -abs(y1 - y0)
+#     sx = 1 if x0 < x1 else -1
+#     sy = 1 if y0 < y1 else -1
+#     err = dx + dy
 
-def bresenham_line(x0, y0, x1, y1):
-    
-        cells = []
-        dx = abs(x1 - x0)
-        dy = -abs(y1 - y0)
-        sx = 1 if x0 < x1 else -1
-        sy = 1 if y0 < y1 else -1
-        err = dx + dy
+#     while True:
+#         # Use math.ceil to adjust x0 and y0 if there's any fractional part when moving
+#         adjusted_x0 = math.ceil(x0) if sx > 0 else math.floor(x0)
+#         adjusted_y0 = math.ceil(y0) if sy > 0 else math.floor(y0)
+#         cells.append((adjusted_x0, adjusted_y0))
+#         if adjusted_x0 == x1 and adjusted_y0 == y1:
+#             break
+#         e2 = 2 * err
+#         if e2 >= dy:
+#             err += dy
+#             x0 += sx
+#         if e2 <= dx:
+#             err += dx
+#             y0 += sy
 
-        while True:
-            cells.append((x0, y0))  # Add the current cell to the list
-            if x0 == x1 and y0 == y1:
-                break
-            e2 = 2 * err
-            if e2 >= dy:
-                err += dy
-                x0 += sx
-            if e2 <= dx:
-                err += dx
-                y0 += sy
+#     return cells
+def bresenham_line_ceil_steps(x0, y0, x1, y1):
+    cells = []
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    sx = 1 if x0 < x1 else -1
+    sy = 1 if y0 < y1 else -1
+    err = dx - dy
 
-        return cells
-a = bresenham_line(0,1,20,10)
+    while True:
+        # Round up x0 and y0 to the nearest whole number on any increase
+        adjusted_x0 = x0 + (1 if sx > 0 and dx != 0 else 0)
+        adjusted_y0 = y0 + (1 if sy > 0 and dy != 0 else 0)
+        cells.append((adjusted_x0, adjusted_y0))
+        if x0 == x1 and y0 == y1:
+            break
+        e2 = 2 * err
+        if e2 > -dy:
+            err -= dy
+            x0 += sx
+        if e2 < dx:
+            err += dx
+            y0 += sy
+
+    return cells
+
+# Example usage
+a = bresenham_line_ceil_steps(0, 1, 20, 10)
 a.pop()
 print(a)
+
+
+# Example usage

@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+# #!/usr/bin/env python3
+
 
 import rclpy
 from rclpy.node import Node
@@ -42,41 +43,6 @@ class CreateMap(Node):
         self.subscriber2 = self.create_subscription(Pose2D,"/pose",self.callback,100)
         self.frame_no=0
 
-    def find_path_until_boundary(self,x, y, theta, xmax=50, ymax=50):
-    # Convert angle from degrees to radians
-        theta_rad = math.radians(theta)
-        
-        # Direction vector components
-        dx = math.cos(theta_rad)
-        dy = math.sin(theta_rad)
-        
-        # List to hold points
-        points = []
-        
-        # Current position
-        cx, cy = x, y
-        
-        while 0 <= cx <= xmax and 0 <= cy <= ymax:
-            # Store current integer position if within bounds
-            ix, iy = int(round(cx)), int(round(cy))
-            if 0 <= ix <= xmax and 0 <= iy <= ymax:
-                points.append((ix, iy))
-            
-            # Move to the next position
-            cx += dx
-            cy += dy
-            
-            # Stop if we go out of bounds to avoid infinite loop
-            if not (0 <= cx <= xmax and 0 <= cy <= ymax):
-                break
-        
-        return points
-
-
-
-
-
-
 
     def callback(self,msg:Pose2D):
         self.curr_x = msg.x
@@ -119,25 +85,26 @@ class CreateMap(Node):
 
         for i,obstacle_dist in enumerate(self.ranges):
             angle = self.angle_min+ self.angle_increment*i+self.curr_theta
-            if(obstacle_dist!=float('inf')):
+            if(obstacle_dist!=obstacle_dist):
+                continue
+            elif(obstacle_dist!=float('inf')):
                 x_obs = round(obstacle_dist*np.cos(angle)+self.curr_x,1)
                 y_obs = round(obstacle_dist*np.sin(angle)+self.curr_y,1)
                 cell_obs,grid_x_obs,grid_y_obs = self.convert(x_obs,y_obs)
-                self.update(cell_obs,0.9)
+                self.update(cell_obs,0.95)
                 line_cells = self.bresenham_line(self.robot_x,self.robot_y,grid_x_obs,grid_y_obs)
                 line_cells.remove((grid_x_obs,grid_y_obs))
                 for cells in line_cells:
                     cell =cells[1]*50+cells[0]
                     self.update(cell,0.4)
-            # else:
-            #     x_max = round(self.range_max*np.cos(angle)+self.curr_x,1)
-            #     y_max = round(self.range_max*np.sin(angle)+self.curr_y,1)
-            #     # line_cells = self.find_path_until_boundary(self.robot_x,self.robot_y,angle)
-            #     cell_obs,grid_x_obs,grid_y_obs = self.convert(x_max,y_max)
-            #     line_cells = self.bresenham_line(self.robot_x,self.robot_y,grid_x_obs,grid_y_obs)
-            #     for cells in line_cells:
-            #         cell =cells[1]*50+cells[0]
-            #         self.update_inf(cell,0.45)
+            else:
+                x_max = round(self.range_max*np.cos(angle)+self.curr_x,1)
+                y_max = round(self.range_max*np.sin(angle)+self.curr_y,1)
+                cell_obs,grid_x_obs,grid_y_obs = self.convert(x_max,y_max)
+                line_cells = self.bresenham_line(self.robot_x,self.robot_y,grid_x_obs,grid_y_obs)
+                for cells in line_cells:
+                    cell =cells[1]*50+cells[0]
+                    self.update(cell,0.4)
 
 
 
@@ -147,26 +114,10 @@ class CreateMap(Node):
         
         
     def update(self,cell,value):
-        # self.temp[cell] = int(100/(1+((1-value/100)*(1-self.temp[cell]/100))/(value/100*self.temp[cell]/100)))
         if(cell>=2500 or cell<=0): return
         p = float(self.temp[cell])
-        # print(f"cell:{cell} initial value {self.temp[cell]} final value:{value} probability:{p}")
-        if(self.temp[cell]>0.28 and self.temp[cell]<=0.72):
-            self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
-        # elif(self.temp[cell]>=0.8 and p==0.8):
-        #     p = 0.9
-        #     self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
+        self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
         self.grid.data = [int(100*i) for i in self.temp]
-
-    def update_inf(self,cell,value):
-        # self.temp[cell] = int(100/(1+((1-value/100)*(1-self.temp[cell]/100))/(value/100*self.temp[cell]/100)))
-        if(cell>=2500 or cell<=0): return
-        p = float(self.temp[cell])
-        # print(f"cell:{cell} initial value {self.temp[cell]} final value:{value} probability:{p}")
-        if(self.temp[cell]>0.49 and self.temp[cell]<=0.51):
-            self.temp[cell] = 1/(1+((1-value)*(1-p))/(value*p))
-        self.grid.data = [int(100*i) for i in self.temp]
-
 
 
     def publish_news(self):  
@@ -188,10 +139,7 @@ class CreateMap(Node):
         self.time_increment = msg.time_increment
         self.scan_time = msg.scan_time
         self.range_min = msg.range_min
-        self.range_max = msg.range_max
-        for i in range(len(msg.ranges)):
-            if msg.ranges[i] != msg.ranges[i]:
-                msg.ranges[i] = float('inf')
+        self.range_max = 5
         self.ranges = msg.ranges
         
 
@@ -204,3 +152,4 @@ def main(args=None):
 
 if __name__=="__main__":
     main()
+
