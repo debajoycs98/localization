@@ -11,24 +11,60 @@ from geometry_msgs.msg import Twist,Pose2D
 from std_msgs.msg import String
 import math
 import matplotlib.pyplot as plt
+from sklearn.metrics import jaccard_score
+from sklearn.metrics.pairwise import cosine_similarity
+import cv2
+from skimage.metrics import structural_similarity as ssim
+from skimage.measure import label, regionprops
+from sklearn.cluster import DBSCAN
 
-# def custom_weighted_jaccard_similarity(vector1, vector2, weight_11=3, weight_00=2, weight_10_01=1):
-#     # Calculate matches and mismatches
-#     intersection_11 = np.logical_and(vector1, vector2).sum()
-#     intersection_00 = np.logical_and(np.logical_not(vector1), np.logical_not(vector2)).sum()
-#     mismatch_10_01 = np.logical_xor(vector1, vector2).sum()
+centroids = [3,4,3,5,5]
 
-#     # Apply weights
-#     weighted_intersection = (weight_11 * intersection_11 + 
-#                              weight_00 * intersection_00)
-
-#     # Calculate the weighted union (total diverse elements with consideration for types)
-#     weighted_union = (weight_11 * intersection_11 + 
-#                       weight_00 * intersection_00 + 
-#                       weight_10_01 * mismatch_10_01)
+def count_centroids(binary_array, eps=1.5, min_samples=3):
+    """
+    Determine the number of clusters in a 2D binary array using DBSCAN.
     
-#     # Calculate and return the weighted Jaccard similarity
-#     return weighted_intersection / weighted_union if weighted_union != 0 else 0
+    Parameters:
+        binary_array (np.array): A 2D numpy array with binary values (0s and 1s).
+        eps (float): The maximum distance between two samples for one to be considered as in the neighborhood of the other.
+        min_samples (int): The number of samples in a neighborhood for a point to be considered as a core point.
+    
+    Returns:
+        int: The number of clusters found, excluding noise.
+    """
+    # Find coordinates of all '1's in the array
+    points = np.column_stack(np.where(binary_array == 1))
+    
+    # Apply DBSCAN to find clusters
+    clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(points)
+    
+    # Count clusters, ignoring noise points (labeled as -1)
+    num_clusters = len(set(clustering.labels_)) - (1 if -1 in clustering.labels_ else 0)
+    
+    return num_clusters
+
+def count_patches(data):
+    """
+    Count the number of connected components (patches) in a binary 2D array using OpenCV.
+    
+    Parameters:
+        data (np.array): A 2D binary numpy array.
+        
+    Returns:
+        int: The number of patches found, excluding the background.
+    """
+    # Ensure data is in the correct type expected by OpenCV
+    # OpenCV expects a binary image with 8-bit unsigned integers.
+    data = np.uint8(data)
+    
+    # Find connected components
+    num_labels, labels = cv2.connectedComponents(data)
+    
+    # The first label is the background, so subtract 1 to get the number of patches
+    return num_labels - 1
+
+
+
 def obstacle_similarity_score(vector1, vector2, weight_match=3, weight_mismatch=-1, weight_free=1):
     """
     Calculate a customized similarity score for two vectors where 1 represents obstacles.
@@ -97,7 +133,13 @@ def find_closest_matrix(vector1, matrix_list):
     dist =[]
     # Iterate over the list of matrices with their indices
     for index, vector2 in enumerate(matrix_list):
-        distance = -1*modified_jaccard_similarity(vector1,vector2)
+        c1 = count_centroids(vector1.reshape((50,50)))
+        c2 = centroids[index]
+        if(c1==c2):b=1
+        else: b=0
+        distance = -1*jaccard_score(vector1,vector2)*(1 + 0.3*b)
+        print(distance)
+        # print(f"{index}:{vector2.sum()}")
         dist.append(distance)
         
         # Update the minimum distance and index if the current distance is smaller
@@ -331,9 +373,12 @@ class CreateMap(Node):
         # if(self.frame_no==0):
         #     for i,matrix in enumerate(self.matrix):
         #         save_matrix_as_image(f"env{i}",matrix)
-        # if(self.frame_no%5==0):save_matrix_as_image(self.binary)
+        # if(self.frame_no==10):
+        #     save_matrix_as_image(self.binary)
+        #     save_matrix_as_image(self.)
         if temp!=None:
             self.environment = self.mapper[temp]
+            print("no of centrids ",count_centroids(self.binary.reshape((50,50))))
             
 
 
